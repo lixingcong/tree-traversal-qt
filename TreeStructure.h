@@ -13,6 +13,7 @@ public:
 	class AbstractTreeItem
 	{
 	public:
+		virtual ~AbstractTreeItem(){}
 		virtual AbstractTreeItem* cloneInstance() const = 0; // 返回一个动态申请的克隆对象，用于树节点的复制
 	};
 

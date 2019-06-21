@@ -169,7 +169,7 @@ public:
 		}
 	}
 
-	void dfs(TraversalHook hook) // 深度优先遍历
+	void dfs(TraversalHook hook) // 深度优先遍历：前序遍历
 	{
 		decltype(m_childNodes) nodesToVisit;
 

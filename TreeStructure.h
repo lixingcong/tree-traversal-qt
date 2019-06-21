@@ -2,39 +2,39 @@
 #define TREESTRUCTURE_H
 
 #include <QList>
+#include "AbstractSerializationItem.h"
 
 #if defined(_MSC_VER) && (_MSC_VER > 1600)
-#pragma execution_character_set("utf-8")
+	#pragma execution_character_set("utf-8")
 #endif
 
-template<typename T>
 class TreeStructure
 {
 public:
-	typedef bool (*TraversalHook)(TreeStructure<T>* instance, TreeStructure<T>* nodeToVisit);
+	typedef bool (*TraversalHook)(TreeStructure* instance, TreeStructure* nodeToVisit);
 
 public:
-	TreeStructure(T* nodeData, TreeStructure* parent = nullptr):
+	TreeStructure(AbstractSerializationItem* nodeData, TreeStructure* parent = nullptr):
 		m_nodeData(nodeData),
 		m_parentNode(parent)
-    {
+	{
 		if(nullptr != parent)
-			parent->addChild(this,-1,false); // append to parent's children
-    }
+			parent->addChild(this, -1, false); // append to parent's children
+	}
 
 	~TreeStructure()
-    {
+	{
 		delete m_nodeData;
 		qDeleteAll(m_childNodes);
-    }
+	}
 
 	TreeStructure* child(int row) const
-    {
+	{
 		if(false == validateChildIndex(row))
 			return nullptr; // invalid child!
 
 		return m_childNodes.value(row);
-    }
+	}
 
 	TreeStructure* sibling(int siblingRow) const
 	{
@@ -45,95 +45,97 @@ public:
 	}
 
 	TreeStructure* parent() const
-    {
+	{
 		return m_parentNode;
-    }
+	}
 
 	void setParent(TreeStructure* parent)
-    {
-		this->m_parentNode=parent;
-    }
+	{
+		this->m_parentNode = parent;
+	}
 
-	bool addChild(TreeStructure* newChild, int row=-1, bool checkParentFirst=true)
-    {
-		if(checkParentFirst && nullptr != newChild->parent()){ // can't add child which already has parent, use moveChild instead
+	bool addChild(TreeStructure* newChild, int row = -1, bool checkParentFirst = true)
+	{
+		if(checkParentFirst
+				&& nullptr != newChild->parent()) { // can't add child which already has parent, use moveChild instead
 			return false;
 		}
 
-		if(0==row && 0==m_childNodes.size()){ // 往空白list中插入0下标
+		if(0 == row && 0 == m_childNodes.size()) { // 往空白list中插入0下标
 			m_childNodes.append(newChild);
-		}else if(row<0 || m_childNodes.size()==row){ // 追加
+		} else if(row < 0 || m_childNodes.size() == row) { // 追加
 			m_childNodes.append(newChild);
-        }else{ // 插入
+		} else { // 插入
 			if(false == validateChildIndex(row))
-                return false;
+				return false;
 
-			m_childNodes.insert(row,newChild);
-        }
+			m_childNodes.insert(row, newChild);
+		}
 
 		newChild->setParent(this);
-        return true;
-    }
+		return true;
+	}
 
-	bool removeChild(int row, bool isDelete=true)
-    {
+	bool removeChild(int row, bool isDelete = true)
+	{
 		if(false == validateChildIndex(row))
-            return false;
+			return false;
 
-		auto childToRemove=m_childNodes.takeAt(row);
+		auto childToRemove = m_childNodes.takeAt(row);
+
 		if(isDelete)
 			delete childToRemove;
 
-        return true;
-    }
+		return true;
+	}
 
 	bool moveChild(int oldRow, int newRow)
 	{
 		if(false == validateChildIndex(oldRow) || false == validateChildIndex(newRow))
 			return false;
 
-		m_childNodes.move(oldRow,newRow);
+		m_childNodes.move(oldRow, newRow);
 		return true;
 	}
 
-	bool moveTo(TreeStructure* newParent, int newRow=-1)
+	bool moveTo(TreeStructure* newParent, int newRow = -1)
 	{
-		bool isOk=true;
-		auto oldRow=row();
-		auto oldParent=parent();
+		bool isOk = true;
+		auto oldRow = row();
+		auto oldParent = parent();
 
-		if(oldParent == newParent){
-			if(newRow<0)
-				newRow=childCount()-1;
+		if(oldParent == newParent) {
+			if(newRow < 0)
+				newRow = childCount() - 1;
 
-			isOk=oldParent->moveChild(oldRow,newRow);
-		}else{ // different parent
-			isOk=newParent->addChild(this,newRow,false);
+			isOk = oldParent->moveChild(oldRow, newRow);
+		} else { // different parent
+			isOk = newParent->addChild(this, newRow, false);
 
-			if(true==isOk && nullptr !=oldParent)
-				oldParent->removeChild(oldRow,false);
+			if(true == isOk && nullptr != oldParent)
+				oldParent->removeChild(oldRow, false);
 		}
 
 		return isOk;
 	}
 
-    int childCount() const
-    {
+	int childCount() const
+	{
 		return m_childNodes.count();
-    }
+	}
 
-	T* data() const
-    {
+	AbstractSerializationItem* data() const
+	{
 		return m_nodeData;
-    }
+	}
 
-    int row() const
-    {
+	int row() const
+	{
 		if(m_parentNode)
 			return m_parentNode->m_childNodes.indexOf(const_cast<TreeStructure*>(this));
 
-        return 0;
-    }
+		return 0;
+	}
 
 	inline bool validateChildIndex(int index) const
 	{
@@ -151,37 +153,37 @@ public:
 
 		destTree->data()->copyFromAnotherObject(data()); // root node data
 
-		while(false == srcNodes.isEmpty()){
-			auto srcNode=srcNodes.takeFirst();
-			auto destNode=destNodes.takeFirst();
+		while(false == srcNodes.isEmpty()) {
+			auto srcNode = srcNodes.takeFirst();
+			auto destNode = destNodes.takeFirst();
 
-			for(auto i=0;i<srcNode->childCount();++i){
-				auto srcNodeChild=srcNode->child(i);
+			for(auto i = 0; i < srcNode->childCount(); ++i) {
+				auto srcNodeChild = srcNode->child(i);
 				srcNodes.append(srcNodeChild);
 
 				// create new node
-				auto newNodeData=srcNodeChild->data()->getInstance();
+				auto newNodeData = srcNodeChild->data()->getInstance();
 				newNodeData->copyFromAnotherObject(srcNodeChild->data());
-				auto newNode=new TreeStructure(newNodeData, destNode);
+				auto newNode = new TreeStructure(newNodeData, destNode);
 
 				destNodes.append(newNode);
 			}
 		}
 	}
 
-	void dfs(TraversalHook hook) // 深度优先遍历：前序遍历
+	void dfs(TraversalHook hook) // 深度优先遍历
 	{
 		decltype(m_childNodes) nodesToVisit;
 
 		nodesToVisit.push_front(this);
 
-		while(false == nodesToVisit.isEmpty()){
-			auto node=nodesToVisit.takeFirst();
+		while(false == nodesToVisit.isEmpty()) {
+			auto node = nodesToVisit.takeFirst();
 
-			if(false == (*hook)(this,node))
+			if(false == (*hook)(this, node))
 				break;
 
-			for(auto i=node->childCount()-1;i>=0;--i)
+			for(auto i = node->childCount() - 1; i >= 0; --i)
 				nodesToVisit.prepend(node->child(i));
 		}
 	}
@@ -192,20 +194,20 @@ public:
 
 		nodesToVisit.push_front(this);
 
-		while(false == nodesToVisit.isEmpty()){
-			auto node=nodesToVisit.takeFirst();
+		while(false == nodesToVisit.isEmpty()) {
+			auto node = nodesToVisit.takeFirst();
 
-			if(false == (*hook)(this,node))
+			if(false == (*hook)(this, node))
 				break;
 
-			for(auto i=0;i<node->childCount();++i)
+			for(auto i = 0; i < node->childCount(); ++i)
 				nodesToVisit.append(node->child(i));
 		}
 	}
 
 protected: // members
-	T* m_nodeData;
-	TreeStructure<T>* m_parentNode;
+	AbstractSerializationItem* m_nodeData;
+	TreeStructure* m_parentNode;
 	QList<decltype(m_parentNode)> m_childNodes;
 };
 

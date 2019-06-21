@@ -11,32 +11,49 @@
 #include <QDebug>
 #include "TreeStructure.h"
 
+class TreeItem:public TreeStructure::AbstractTreeItem
+{
+public:
+	TreeItem(int data):data(data){}
+	TreeItem* cloneInstance()const override
+	{
+		return new TreeItem(this->data);
+	}
+
+	int data;
+};
+
 int main()
 {
-	typedef TreeStructure<int> MyTree;
+	auto oldTree = new TreeStructure(new TreeItem(0));
 
-	auto rootNode = new MyTree(new int(0));
+	auto n1 = new TreeStructure(new TreeItem(1), oldTree);
+	auto n2 = new TreeStructure(new TreeItem(2), oldTree);
 
-	auto n1 = new MyTree(new int(1), rootNode);
-	auto n2 = new MyTree(new int(2), rootNode);
+	auto n11 = new TreeStructure(new TreeItem(11), n1);
+	auto n12 = new TreeStructure(new TreeItem(12), n1);
 
-	auto n11 = new MyTree(new int(11), n1);
-	auto n12 = new MyTree(new int(12), n1);
+	auto n111 = new TreeStructure(new TreeItem(111), n11);
+	auto n121 = new TreeStructure(new TreeItem(121), n12);
+	auto n122 = new TreeStructure(new TreeItem(122), n12);
 
-	auto n111 = new MyTree(new int(111), n11);
-	auto n121 = new MyTree(new int(121), n12);
-	auto n122 = new MyTree(new int(122), n12);
+	auto n21 = new TreeStructure(new TreeItem(21), n2);
+	auto n22 = new TreeStructure(new TreeItem(22), n2);
 
-	auto n21 = new MyTree(new int(21), n2);
-	auto n22 = new MyTree(new int(22), n2);
-
-	auto hook = [](MyTree * instance, MyTree * node) {
-		qDebug("data=%d", *node->data());
+	auto hook = [](TreeStructure* instance, TreeStructure* node) {
+		auto treeItem=static_cast<TreeItem*>(node->data());
+		qDebug("data=%d", treeItem->data);
 		return true;
 	};
 
-	rootNode->bfs(hook);
+	qDebug("old tree:");
+	oldTree->bfs(hook);
 
-	delete rootNode;
+	auto newTree=oldTree->cloneTree();
+	qDebug("new tree:");
+	newTree->bfs(hook);
+
+	delete oldTree;
+	delete newTree;
 	return 0;
 }

@@ -2,7 +2,6 @@
 #define TREESTRUCTURE_H
 
 #include <QList>
-#include "AbstractSerializationItem.h"
 
 #if defined(_MSC_VER) && (_MSC_VER > 1600)
 	#pragma execution_character_set("utf-8")
@@ -11,10 +10,14 @@
 class TreeStructure
 {
 public:
-	typedef bool (*TraversalHook)(TreeStructure* instance, TreeStructure* nodeToVisit);
+	class AbstractTreeItem
+	{
+	public:
+		virtual AbstractTreeItem* cloneInstance() const = 0; // 返回一个动态申请的克隆对象，用于树节点的复制
+	};
 
 public:
-	TreeStructure(AbstractSerializationItem* nodeData, TreeStructure* parent = nullptr):
+	TreeStructure(AbstractTreeItem* nodeData, TreeStructure* parent = nullptr):
 		m_nodeData(nodeData),
 		m_parentNode(parent)
 	{
@@ -124,7 +127,7 @@ public:
 		return m_childNodes.count();
 	}
 
-	AbstractSerializationItem* data() const
+	AbstractTreeItem* data() const
 	{
 		return m_nodeData;
 	}
@@ -142,16 +145,16 @@ public:
 		return !(index < 0 || index >= childCount());
 	}
 
-	void copyTo(TreeStructure* destTree) const
+	TreeStructure* cloneTree() const
 	{
+		auto destTree=new TreeStructure(data()->cloneInstance());
+
 		// BFS Traversal
 		decltype(m_childNodes) srcNodes;
 		decltype(m_childNodes) destNodes;
 
 		srcNodes.push_front(const_cast<TreeStructure*>(this));
 		destNodes.push_front(destTree);
-
-		destTree->data()->copyFromAnotherObject(data()); // root node data
 
 		while(false == srcNodes.isEmpty()) {
 			auto srcNode = srcNodes.takeFirst();
@@ -161,15 +164,16 @@ public:
 				auto srcNodeChild = srcNode->child(i);
 				srcNodes.append(srcNodeChild);
 
-				// create new node
-				auto newNodeData = srcNodeChild->data()->getInstance();
-				newNodeData->copyFromAnotherObject(srcNodeChild->data());
-				auto newNode = new TreeStructure(newNodeData, destNode);
-
-				destNodes.append(newNode);
+				auto destNodeChild = new TreeStructure(srcNodeChild->data()->cloneInstance(), destNode);
+				destNodes.append(destNodeChild);
 			}
 		}
+
+		return destTree;
 	}
+
+public:
+	typedef bool (*TraversalHook)(TreeStructure* instance, TreeStructure* nodeToVisit); // 遍历的回调函数
 
 	void dfs(TraversalHook hook) // 深度优先遍历
 	{
@@ -206,7 +210,7 @@ public:
 	}
 
 protected: // members
-	AbstractSerializationItem* m_nodeData;
+	AbstractTreeItem* m_nodeData;
 	TreeStructure* m_parentNode;
 	QList<decltype(m_parentNode)> m_childNodes;
 };
